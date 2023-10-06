@@ -1,0 +1,21 @@
+{
+  "@microsoft/generator-sharepoint": {
+    "plusBeta": false,
+    "isCreatingSolution": true,
+    "nodeVersion": "16.15.0",
+    "sdksVersions": {
+      "@microsoft/microsoft-graph-client": "3.0.2",
+      "@microsoft/teams-js": "2.9.1"
+    },
+    "version": "1.17.3",
+    "libraryName": "likes-getter",
+    "libraryId": "6ec56d24-967e-4f64-8d5c-ae102bee6610",
+    "environment": "spo",
+    "packageManager": "npm",
+    "solutionName": "likes-getter",
+    "solutionShortDescription": "likes-getter description",
+    "skipFeatureDeployment": true,
+    "isDomainIsolated": false,
+    "componentType": "webpart"
+  }
+}

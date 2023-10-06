@@ -1,0 +1,40 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/spfx-build/package-solution.schema.json",
+  "solution": {
+    "name": "likes-getter-client-side-solution",
+    "id": "6ec56d24-967e-4f64-8d5c-ae102bee6610",
+    "version": "1.0.0.0",
+    "includeClientSideAssets": true,
+    "skipFeatureDeployment": true,
+    "isDomainIsolated": false,
+    "developer": {
+      "name": "",
+      "websiteUrl": "",
+      "privacyUrl": "",
+      "termsOfUseUrl": "",
+      "mpnId": "Undefined-1.17.3"
+    },
+    "metadata": {
+      "shortDescription": {
+        "default": "likes-getter description"
+      },
+      "longDescription": {
+        "default": "likes-getter description"
+      },
+      "screenshotPaths": [],
+      "videoUrl": "",
+      "categories": []
+    },
+    "features": [
+      {
+        "title": "likes-getter Feature",
+        "description": "The feature that activates elements of the likes-getter solution.",
+        "id": "e8824d50-e998-45d8-b7a0-78896d7b1d61",
+        "version": "1.0.0.0"
+      }
+    ]
+  },
+  "paths": {
+    "zippedPackage": "solution/likes-getter.sppkg"
+  }
+}
