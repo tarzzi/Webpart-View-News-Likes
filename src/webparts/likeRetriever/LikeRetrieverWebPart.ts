@@ -3,7 +3,6 @@ import * as ReactDom from 'react-dom';
 import { Version } from '@microsoft/sp-core-library';
 import {
   IPropertyPaneConfiguration,
-  PropertyPaneDynamicField,
   PropertyPaneTextField
 } from '@microsoft/sp-property-pane';
 import { BaseClientSideWebPart } from '@microsoft/sp-webpart-base';
@@ -12,15 +11,18 @@ import { IReadonlyTheme } from '@microsoft/sp-component-base';
 import * as strings from 'LikeRetrieverWebPartStrings';
 import LikeRetriever from './components/LikeRetriever';
 import { ILikeRetrieverProps } from './components/ILikeRetrieverProps';
+import { PropertyFieldSitePicker, IPropertyFieldSite  } from '@pnp/spfx-property-controls/lib/PropertyFieldSitePicker';
 
 export interface ILikeRetrieverWebPartProps {
   description: string;
+  sites: IPropertyFieldSite[];
 }
 
 export default class LikeRetrieverWebPart extends BaseClientSideWebPart<ILikeRetrieverWebPartProps> {
 
   private _isDarkTheme: boolean = false;
   private _environmentMessage: string = '';
+  
 
   public render(): void {
     const element: React.ReactElement<ILikeRetrieverProps> = React.createElement(
@@ -31,7 +33,8 @@ export default class LikeRetrieverWebPart extends BaseClientSideWebPart<ILikeRet
         environmentMessage: this._environmentMessage,
         hasTeamsContext: !!this.context.sdks.microsoftTeams,
         userDisplayName: this.context.pageContext.user.displayName,
-        context: this.context
+        context: this.context,
+        sites: this.properties.sites
       }
     );
 
@@ -105,7 +108,7 @@ export default class LikeRetrieverWebPart extends BaseClientSideWebPart<ILikeRet
       pages: [
         {
           header: {
-            description: strings.PropertyPaneDescription
+            description: 'Who liked your news, find out here!'
           },
           groups: [
             {
@@ -117,11 +120,19 @@ export default class LikeRetrieverWebPart extends BaseClientSideWebPart<ILikeRet
               ]
             },
             {
-              groupName: 'NewsSites',
+              groupName: 'News Site settings',
               groupFields: [
-                PropertyPaneDynamicField('newsSites', {
-                  label: 'News Sites'
+                PropertyFieldSitePicker('sites', {
+                  label: 'Select sites',
+                  initialSites: this.properties.sites,
+                  context: this.context,
+                  deferredValidationTime: 500,
+                  multiSelect: true,
+                  onPropertyChange: this.onPropertyPaneFieldChanged,
+                  properties: this.properties,
+                  key: 'sitesFieldId'
                 })
+
               ]
             }
           ]

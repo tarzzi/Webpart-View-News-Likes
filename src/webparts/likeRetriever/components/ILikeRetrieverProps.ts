@@ -7,4 +7,5 @@ export interface ILikeRetrieverProps {
   hasTeamsContext: boolean;
   userDisplayName: string;
   context: WebPartContext;
+  sites: any[];
 }

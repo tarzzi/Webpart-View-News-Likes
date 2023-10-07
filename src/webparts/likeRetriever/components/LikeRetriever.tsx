@@ -3,140 +3,194 @@ import styles from './LikeRetriever.module.scss';
 import { ILikeRetrieverProps } from './ILikeRetrieverProps';
 import { WebPartContext } from '@microsoft/sp-webpart-base';
 import { PageComponent } from './PageCard/PageComponent';
-
+import RestApiService from '../services/RestApiService';
+//import FilterFields from './FilterFields/FilterFields';
 // import { escape } from '@microsoft/sp-lodash-subset';
 
 interface ILikeRetrieverState {
+  sites: any[];
+  siteUrl: string;
+  allPages: any[];
   pages: any[];
+  filteredPages: any[];
+  useFilter: boolean;
+  loading: boolean;
+  queryType: string;
+  queryText: string;
+  __next: string;
 }
+
 
 export default class LikeRetriever extends React.Component<ILikeRetrieverProps, ILikeRetrieverState> {
   private ctx: WebPartContext;
+  private restApiService: RestApiService;
 
   constructor(props: ILikeRetrieverProps) {
     super(props);
     this.ctx = props.context;
     this.state = {
+      loading: false,
+      queryType: 'all',
+      useFilter: false,
+      queryText: '',
+      sites: this.props.sites,
+      siteUrl: '',
+      allPages: [],
       pages: [],
+      filteredPages: [],
+      __next: ''
     };
+
+
+    const defaultSite = this.props.sites[0];
+    this.restApiService = new RestApiService(defaultSite.url);
+
   }
+
 
   public async componentDidMount(): Promise<void> {
+    console.log(this.props.sites)
     console.log(this.ctx);
-    // get all sites that belong to the hub that the user is currently in
-    const pages = await this.fetchPages("https://tenant.sharepoint.com/sites/sitename");
+
+    const pages = await this.restApiService.fetchPages();
     console.log("Retrieved sites", pages);
 
-    // get likedbyinfo for each page
-    const pagesWithLikes = await this.fetchLikes(pages);
-    console.log("Retrieved likes", pagesWithLikes);
-    this.setState({
-      pages: pagesWithLikes,
-    });
+    if (this.state.queryType === 'all') {
+      const pagesWithLikes = await this.restApiService.fetchLikes(pages);
+      console.log("Retrieved likes", pagesWithLikes);
+      this.setPages(pagesWithLikes);
+      this.setState({
+        pages: pagesWithLikes,
+      });
+    }
 
-
+    if (this.state.queryType === 'search') {
+      const pagesWithLikes = await this.restApiService.fetchPageQuery("q");
+      console.log("Retrieved likes", pagesWithLikes);
+      this.setState({
+        pages: pagesWithLikes,
+      });
+    }
   }
 
-  private fetchLikes(pages: any[]): Promise<any> {
-    const pagesWithLikes = pages.map(async (page: any) => {
-      const likes = await this.fetchLikesForPage(page);
-      return {
-        ...page,
-        likes,
-      };
-    }
-    );
+  public async componentDidUpdate(prevProps: ILikeRetrieverProps, prevState: ILikeRetrieverState): Promise<void> {
+    if (this.state.queryType !== prevState.queryType) {
+      const pages = await this.restApiService.fetchPages();
+      console.log("Retrieved sites", pages);
 
-    return Promise.all(pagesWithLikes);
-
-
-  }
-
-  private fetchLikesForPage(page: any): Promise<any> {
-
-    const apiUrl = `${page.LikedByInformation.__deferred.uri}?$expand=LikedBy`;
-    if (page.ID === 3) {
-      console.log("Fetching likes for page", page.Title, apiUrl);
-    }
-    return fetch(apiUrl, {
-      method: "GET",
-      headers: {
-        "Accept": "application/json;odata=verbose",
-      },
-    })
-      .then(response => response.json())
-      .then(data => {
-        const d = data.d;
-        const l = d.likedBy.results;
-
-        if (l.length === 0) {
-          return {
-            count: 0,
-            likedBy: [],
-          };
-        }
-
-        const usersLiked = l.map((user: any) => {
-          return {
-            name: user.name,
-            upn: user.loginName,
-          };
+      if (this.state.queryType === 'all') {
+        const pagesWithLikes = await this.restApiService.fetchLikes(pages);
+        console.log("Retrieved likes", pagesWithLikes);
+        this.setState({
+          pages: pagesWithLikes,
         });
+      }
 
-        const likeData = {
-          count: d.likeCount,
-          likedBy: usersLiked,
-        };
+      if (this.state.queryType === 'search') {
+        const pagesWithLikes = await this.restApiService.fetchPageQuery(this.state.queryText);
+        console.log("Retrieved likes", pagesWithLikes);
+        this.setState({
+          pages: pagesWithLikes,
+        });
+      }
+    }
+    if( this.state.queryText !== prevState.queryText){
+      console.log("queryText changed", this.state.queryText)
+      if(this.state.queryText === ""){
+        const pages = await this.restApiService.fetchPages();
+        console.log("Retrieved sites", pages);
+        this.setState({
+          pages: pages,
+          useFilter: false
+        });
+        return;
+      }
 
-        return likeData;
-      })
-      .catch(error => {
-        console.log("Error: " + error);
+      const q = this.state.queryText;
+      const pages = this.state.pages;
+      console.log("pages", pages)
+      const filteredPages = pages.filter((page) => {
+        return page.FileLeafRef.toLowerCase().includes(q.toLowerCase()) || page.Title.toLowerCase().includes(q.toLowerCase());
       });
+      this.setState({
+        filteredPages: filteredPages,
+        useFilter: true
+      });
+    }
   }
 
+  private setPages = (pages: any[]): void => {
+    
+    this.setState({
+      allPages: pages,
+    });
+  }
 
+/*   private setQueryType = (event: any): void => {
+    this.setState({
+      queryType: event.target.value,
+    });
+  } */
 
-  private fetchPages(siteUrl: any): Promise<any> {
-    const apiUrl = `${siteUrl}/_api/web/lists/getbyTitle('Site%20Pages')/items?$select=Id,FirstPublishedDate,FileLeafRef,Title,BannerImageUrl,LikedByInformation&$orderby=FirstPublishedDate desc`;
-
-    return fetch(apiUrl, {
-      method: "GET",
-      headers: {
-        "Accept": "application/json;odata=verbose",
-      },
-    })
-      .then(response => response.json())
-      .then(data => {
-        return data.d.results;
-      })
-      .catch(error => {
-        console.log("Error: " + error);
+  private setSite = (event: any): void => {
+    this.restApiService = new RestApiService(event.target.value);
+    //refetch pages
+    this.restApiService.fetchPages().then((pages) => {
+      this.setState({
+        pages: pages,
       });
+    }
+    ).catch((error) => {
+      console.log(error);
+    });
   }
 
 
 
   public render(): React.ReactElement<ILikeRetrieverProps> {
     const {
-      description,
       hasTeamsContext,
     } = this.props;
 
-    const { pages } = this.state;
+    const handleQueryTypeChange = (event: React.ChangeEvent<HTMLSelectElement>): void => {
+      this.setState({ queryType: event.target.value });
+    }
 
+    const handleQueryTextChange = (event: React.ChangeEvent<HTMLInputElement>): void => {
+      this.setState({ queryText: event.target.value });
+    }
+
+    const { sites, pages, queryType, useFilter,filteredPages } = this.state;
+    
+    const serviceScope = this.props.context.serviceScope;
 
     return (
-      <section className={`${styles.likeRetriever} ${hasTeamsContext ? styles.teams : ''}`}>
-        {description}
-        <div id='container' style={{
-          display: "flex",
-          flexDirection: "column",
-          gap: "25px"
-        }} >
-          {pages && pages.length > 0 && pages.map((page: any) => {
+      <section  style={{display:"grid", gridAutoColumns:"auto", gap:"20px"}} className={`${styles.likeRetriever} ${hasTeamsContext ? styles.teams : ''}`}>
+        <div>
+          <div style={{ display: 'flex', alignItems: 'center', gap:"15px" }}>
+            <select name="queryType" style={{ border: '1px solid #ccc', borderRadius: '5px', padding: '5px' }} value={queryType} onChange={handleQueryTypeChange}>
+              <option value="all">Latest</option>
+              <option value="search">Search</option>
+            </select>
+            <select  id="site" name="site" onChange={this.setSite} style={{ border: '1px solid #ccc', borderRadius: '5px', padding: '5px' }}>
+              {sites.map((site) => (
+                <option key={site.id} value={site.url}>
+                  {site.title}
+                </option>
+              ))}
+            </select>
+            <input type="text" placeholder="Enter search query" style={{ border: '1px solid #ccc', borderRadius: '5px', padding: '5px'  }} onChange={handleQueryTextChange} />
+          </div>
+        </div>
+        <div id='container' className={styles.container} >
+          {pages && !useFilter && pages.length > 0 && pages.map((page: any) => {
             return (
-              PageComponent(page)
+              <PageComponent key={page.Title} page={page} serviceScope={serviceScope} />
+            );
+          })}
+          {pages && useFilter && filteredPages.length > 0 && filteredPages.map((page: any) => {
+            return (
+              <PageComponent key={page.Title} page={page} serviceScope={serviceScope} />
             );
           })}
         </div>
