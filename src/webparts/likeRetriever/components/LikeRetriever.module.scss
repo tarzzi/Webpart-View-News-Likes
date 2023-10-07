@@ -1,5 +1,11 @@
 @import '~@fluentui/react/dist/sass/References.scss';
 
+.container{
+  display: flex;  
+  flex-direction: column;
+  gap: "25px";
+}
+
 .likeRetriever {
   overflow: hidden;
   padding: 1em;
